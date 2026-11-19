@@ -4,7 +4,7 @@
 
 HelpHub is a student-focused resource-sharing and peer-support web app. Members can publish study resources, access shared PDFs, arrange offline rentals of physical notes, and ask classmates for help. The application is a single-page React app backed by Firebase Authentication and Cloud Firestore, with Supabase Storage for PDF and profile-photo files.
 
-**Live app:** [helphub-platform.web.app](https://helphub-platform.web.app)
+**Live app:** [https://help-hub-topaz.vercel.app](https://help-hub-topaz.vercel.app)
 
 ## Table of contents
 
@@ -72,7 +72,7 @@ HelpHub is a student-focused resource-sharing and peer-support web app. Members 
 | Authentication | Firebase Authentication (email/password) |
 | App data and live updates | Cloud Firestore |
 | PDF and avatar files | Supabase Storage |
-| Hosting | Firebase Hosting |
+| Hosting | Vercel |
 
 ## Application architecture
 
@@ -210,56 +210,68 @@ Some list views use live Firestore listeners. `firestore.indexes.json` contains 
 - Firebase web API keys are not authorization secrets. Restrict their allowed APIs in Google Cloud where appropriate, and use Firebase Security Rules (and App Check where configured) to protect data/services.
 - Use test accounts and non-sensitive sample files while developing. Review all policies before opening the app to the public.
 
-## Run and deploy
+## Run and Deploy
 
-### Local development and production build
+### Local Development and Production Build
+
+To run HelpHub locally, install the dependencies and start the Vite development server:
 
 ```bash
+npm install
 npm run dev
+```
+
+To create and preview a production build:
+
+```bash
 npm run build
 npm run preview
 ```
 
-### Deploy Firestore rules and indexes
+### Deploy Firestore Rules and Indexes
 
-The Firebase CLI can run through `npx`; a global install is not required.
+Firebase is still used for Authentication and Cloud Firestore. Deploy the Firestore security rules and indexes using Firebase CLI:
 
 ```bash
 npx firebase-tools login
-npx firebase-tools deploy --only firestore:rules,firestore:indexes --project <firebase-project-id>
+npx firebase-tools deploy --only firestore:rules,firestore:indexes --project helphub-platform
 ```
 
-For the original project, the project ID is `helphub-platform`. In Firebase Console → Firestore → Indexes, wait until the required indexes show **Enabled**. A **Building** status means the index is not ready yet.
-
-### Deploy the web app to Firebase Hosting
-
-Make sure your production environment variables are available before building. Then run:
-
-```bash
-npm run build
-npx firebase-tools deploy --only hosting --project <firebase-project-id>
-```
-
-To deploy all resources declared in `firebase.json` (Hosting, Firestore rules, and indexes), build first and run:
-
-```bash
-npm run build
-npx firebase-tools deploy --project <firebase-project-id>
-```
-
-Alternatively, `npm run deploy:all` runs the build and deploys to the Firebase project already selected in the CLI. The first deploy may require selecting or creating a Firebase Hosting site. Check the Firebase CLI output for the final hosted URL.
+Wait until the required Firestore indexes show **Enabled** in the Firebase Console.
 
 ## Deploy to Vercel
 
-Vercel can host the React/Vite frontend while Firebase continues to provide Authentication and Firestore and Supabase continues to store files. `vercel.json` rewrites app routes to `index.html`, so direct visits to dashboard routes work.
+HelpHub is hosted on **Vercel**, which provides production deployment and automatic deployments through GitHub integration. Firebase continues to handle Authentication and Cloud Firestore, while Supabase is used for PDF and profile-photo storage.
 
-1. Push this repository to GitHub and import it in [Vercel](https://vercel.com/).
-2. Select **Vite** as the framework preset. Use `npm run build` as the build command and `dist` as the output directory (Vercel normally detects these automatically).
-3. Add all variables listed in [Environment variables](#environment-variables) to Vercel's project environment variables for **Production** and **Preview** as needed. They are embedded into the browser bundle during the build, so redeploy after changing them.
-4. Deploy the project and open the Vercel-provided `*.vercel.app` URL.
-5. Add that hostname (without `https://` or a path) to Firebase Authentication's authorized domains, then redeploy and confirm sign-in, password reset, Firestore reads/writes, and Supabase file access.
+### Deployment Steps
 
-Vercel deploys the frontend only. Firebase rules and indexes still need to be deployed separately with the Firebase CLI, and Supabase buckets and policies still need to be configured in Supabase. The existing Firebase Hosting site can remain deployed independently.
+1. Push the latest project code to the GitHub repository.
+2. Log in to [Vercel](https://vercel.com/) using your GitHub account.
+3. Import the `pratigyasachdeva/HelpHub` repository.
+4. Configure the project with the following settings:
+
+   - **Framework Preset:** Vite
+   - **Root Directory:** `./`
+   - **Build Command:** `npm run build`
+   - **Output Directory:** `dist`
+   - **Install Command:** `npm install`
+
+5. Add all required environment variables from `.env` to Vercel Project Settings under Environment Variables. Configure them for Production and Preview environments.
+6. Click **Deploy** to build and publish the application.
+7. Once deployment is successful, Vercel provides a live production URL.
+
+### Automatic Deployment
+
+The GitHub repository is connected to Vercel. Whenever new changes are pushed to the `main` branch, Vercel automatically builds and deploys the updated application.
+
+### Post-Deployment Configuration
+
+1. Add the Vercel production hostname to Firebase Authentication's authorized domains.
+2. Verify Firebase Authentication and Cloud Firestore connectivity.
+3. Confirm that Supabase Storage buckets and access policies are configured correctly.
+4. Test user registration, login, password reset, PDF uploads, downloads, and profile-photo functionality.
+
+**Note:** Vercel hosts only the frontend application. Firebase Authentication, Firestore security rules and indexes, and Supabase Storage continue to operate independently. The existing Firebase Hosting deployment can remain active separately.
 
 ## Known scope and limitations
 
