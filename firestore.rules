@@ -1,0 +1,133 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isActiveUser() {
+      return isSignedIn() && getUserData().status == 'active';
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.admin == true ||
+        getUserData().role == 'admin'
+      );
+    }
+
+    // USERS: Public signup cannot assign 'admin' role
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && request.auth.uid == userId
+        && request.resource.data.role in ['student', 'community_member']
+        && request.resource.data.status == 'active';
+      allow update: if (isSignedIn() && request.auth.uid == userId
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.status == resource.data.status)
+        || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // RESOURCES: Only owner or admin can update/delete
+    match /resources/{resourceId} {
+      allow read: if resource.data.moderationStatus == 'approved'
+        || (isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin()));
+      allow create: if isActiveUser()
+        && request.resource.data.ownerId == request.auth.uid
+        && (!request.resource.data.hasHardCopy || (
+          request.resource.data.dailyRate >= 3 && request.resource.data.dailyRate <= 10
+        ));
+      allow update: if isSignedIn() && (
+        (resource.data.ownerId == request.auth.uid && isActiveUser())
+        || isAdmin()
+        || (isActiveUser() && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['totalDownloads', 'uniqueDownloadersCount', 'viewsCount', 'interestedUsers', 'rentalRequestsCount', 'completedRentalsCount', 'avgRating', 'reviewCount', 'helpfulPercentage']))
+      );
+      allow delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+    }
+
+    // DOWNLOADS: Deterministic ID {resourceId}_{userId}
+    match /downloads/{downloadId} {
+      allow read: if isSignedIn();
+      allow create, update: if isActiveUser()
+        && request.resource.data.userId == request.auth.uid;
+    }
+
+    // RENTAL REQUESTS: Only renter, owner, or admin can access/update
+    match /rentalRequests/{requestId} {
+      allow read: if isSignedIn() && (
+        resource.data.renterId == request.auth.uid ||
+        resource.data.ownerId == request.auth.uid ||
+        isAdmin()
+      );
+      allow create: if isActiveUser()
+        && request.resource.data.renterId == request.auth.uid
+        && request.resource.data.renterId != request.resource.data.ownerId
+        && request.resource.data.dailyRate >= 3
+        && request.resource.data.dailyRate <= 10
+        && request.resource.data.status == 'Pending';
+      allow update: if isSignedIn() && (
+        resource.data.renterId == request.auth.uid ||
+        resource.data.ownerId == request.auth.uid ||
+        isAdmin()
+      );
+    }
+
+    // RENTAL HISTORY
+    match /rentalHistory/{historyId} {
+      allow read: if isSignedIn();
+      allow create: if isActiveUser();
+    }
+
+    // HELP REQUESTS
+    match /helpRequests/{helpId} {
+      allow read: if isSignedIn();
+      allow create: if isActiveUser() && request.resource.data.authorId == request.auth.uid;
+      allow update: if isSignedIn() && (
+        resource.data.authorId == request.auth.uid || isAdmin() || isActiveUser()
+      );
+      allow delete: if isSignedIn() && (resource.data.authorId == request.auth.uid || isAdmin());
+    }
+
+    // HELP OFFERS
+    match /helpOffers/{offerId} {
+      allow read: if isSignedIn();
+      allow create: if isActiveUser() && request.resource.data.helperId == request.auth.uid;
+      allow update: if isSignedIn() && (
+        resource.data.helperId == request.auth.uid ||
+        resource.data.requestAuthorId == request.auth.uid ||
+        isAdmin()
+      );
+    }
+
+    // REVIEWS: Deterministic ID {targetType}_{targetId}_{reviewerId} prevents duplicates
+    match /reviews/{reviewId} {
+      allow read: if isSignedIn();
+      allow create: if isActiveUser()
+        && request.resource.data.reviewerId == request.auth.uid
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5;
+      allow delete: if isAdmin();
+    }
+
+    // REPORTS
+    match /reports/{reportId} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.reporterId == request.auth.uid);
+      allow create: if isActiveUser() && request.resource.data.reporterId == request.auth.uid;
+      allow update: if isAdmin();
+    }
+
+    // NOTIFICATIONS
+    match /notifications/{notifId} {
+      allow read, update: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn();
+    }
+  }
+}
