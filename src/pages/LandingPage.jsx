@@ -1,6 +1,5 @@
-
-import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useEffect, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Search,
   FileText,
@@ -17,20 +16,29 @@ import {
   CheckCircle2,
   Star,
   Library,
-  MoveUpRight
-} from 'lucide-react';
+  MoveUpRight,
+} from "lucide-react";
 
-import PublicNavbar from '../components/layout/PublicNavbar';
-import Footer from '../components/layout/Footer';
-import { subscribeApprovedResources } from '../services/resourceService';
-import { RESOURCE_CATEGORIES } from '../utils/pricingAndDates';
-import ResourceCard from '../features/resources/ResourceCard';
+import PublicNavbar from "../components/layout/PublicNavbar";
+import Footer from "../components/layout/Footer";
+import { subscribeApprovedResources } from "../services/resourceService";
+import { RESOURCE_CATEGORIES } from "../utils/pricingAndDates";
+import ResourceCard from "../features/resources/ResourceCard";
 
 export default function LandingPage() {
   const navigate = useNavigate();
 
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [featured, setFeatured] = useState([]);
+
+  const statsRef = useRef(null);
+  const [statsVisible, setStatsVisible] = useState(false);
+
+  const [animatedStats, setAnimatedStats] = useState({
+    resources: 0,
+    downloads: 0,
+    rentals: 0,
+  });
 
   useEffect(() => {
     return subscribeApprovedResources((list) => setFeatured(list));
@@ -43,75 +51,128 @@ export default function LandingPage() {
 
   const totalDownloads = featured.reduce(
     (acc, r) => acc + (r.totalDownloads || 0),
-    0
+    0,
   );
 
   const completedRentals = featured.reduce(
     (acc, r) => acc + (r.completedRentalsCount || 0),
-    0
+    0,
   );
+
+  // Start animation when stats section enters the screen
+  useEffect(() => {
+    const element = statsRef.current;
+
+    if (!element) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setStatsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.25 },
+    );
+
+    observer.observe(element);
+
+    return () => observer.disconnect();
+  }, []);
+
+  // Count-up animation
+  useEffect(() => {
+    if (!statsVisible) return;
+
+    const targets = {
+      resources: featured.length,
+      downloads: totalDownloads,
+      rentals: completedRentals,
+    };
+
+    const duration = 2500;
+    let startTime = null;
+    let animationFrame;
+
+    const animate = (timestamp) => {
+      if (!startTime) startTime = timestamp;
+
+      const progress = Math.min((timestamp - startTime) / duration, 1);
+      const easedProgress = 1 - Math.pow(1 - progress, 4);
+
+      setAnimatedStats({
+        resources: Math.round(targets.resources * easedProgress),
+        downloads: Math.round(targets.downloads * easedProgress),
+        rentals: Math.round(targets.rentals * easedProgress),
+      });
+
+      if (progress < 1) {
+        animationFrame = requestAnimationFrame(animate);
+      }
+    };
+
+    animationFrame = requestAnimationFrame(animate);
+
+    return () => cancelAnimationFrame(animationFrame);
+  }, [statsVisible, featured.length, totalDownloads, completedRentals]);
 
   const workflows = [
     {
-      number: '01',
+      number: "01",
       icon: FileText,
-      color: 'text-blue-600',
-      bg: 'bg-blue-50',
-      title: 'Digital PDF Notes',
-      subtitle: 'Learn without limits',
-      desc: 'Upload PDFs to Firebase Storage. Only verified downloaders can submit 1–5 star ratings and helpfulness scores.',
-      tag: 'DIGITAL LIBRARY'
+      color: "text-blue-600",
+      bg: "bg-blue-50",
+      title: "Digital PDF Notes",
+      subtitle: "Learn without limits",
+      desc: "Upload PDFs to Firebase Storage. Only verified downloaders can submit 1–5 star ratings and helpfulness scores.",
+      tag: "DIGITAL LIBRARY",
     },
     {
-      number: '02',
+      number: "02",
       icon: BookCopy,
-      color: 'text-violet-600',
-      bg: 'bg-violet-50',
-      title: 'Physical Note Rentals',
-      subtitle: 'Affordable learning',
-      desc: 'Fair page-count pricing slabs, conflict-free calendar booking, explicit handover confirmation, and return tracking.',
-      tag: '₹3–₹10 / DAY'
+      color: "text-violet-600",
+      bg: "bg-violet-50",
+      title: "Physical Note Rentals",
+      subtitle: "Affordable learning",
+      desc: "Fair page-count pricing slabs, conflict-free calendar booking, explicit handover confirmation, and return tracking.",
+      tag: "₹3–₹10 / DAY",
     },
     {
-      number: '03',
+      number: "03",
       icon: HandHelping,
-      color: 'text-emerald-600',
-      bg: 'bg-emerald-50',
-      title: 'Community Help Board',
-      subtitle: 'Better together',
-      desc: 'Post study questions or neighborhood assistance requests, review incoming offers, and track completion in real time.',
-      tag: 'COMMUNITY'
-    }
+      color: "text-emerald-600",
+      bg: "bg-emerald-50",
+      title: "Community Help Board",
+      subtitle: "Better together",
+      desc: "Post study questions or neighborhood assistance requests, review incoming offers, and track completion in real time.",
+      tag: "COMMUNITY",
+    },
   ];
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F8F9FD] text-slate-900 overflow-hidden">
+    <div className="min-h-screen flex flex-col bg-[#F8F9FD] text-slate-900 overflow-x-clip">
       <PublicNavbar />
 
       <main className="flex-1">
-
         {/* ================= HERO ================= */}
         <section className="relative bg-[#0D1738] text-white overflow-hidden">
-
           {/* Background */}
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(79,70,229,0.25),transparent_50%)]" />
           <div className="absolute top-20 -left-40 w-96 h-96 bg-blue-500/10 rounded-full blur-[100px]" />
           <div className="absolute -bottom-40 right-1/4 w-96 h-96 bg-violet-500/10 rounded-full blur-[100px]" />
 
-          <div className="absolute inset-0 opacity-[0.04]"
+          <div
+            className="absolute inset-0 opacity-[0.04]"
             style={{
-              backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)',
-              backgroundSize: '30px 30px'
+              backgroundImage: "radial-gradient(#ffffff 1px, transparent 1px)",
+              backgroundSize: "30px 30px",
             }}
           />
 
           <div className="relative max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 pt-20 pb-16 lg:pt-28 lg:pb-24">
-
             <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-14 lg:gap-8 items-center">
-
               {/* Hero Content */}
               <div className="text-center lg:text-left">
-
                 <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.07] border border-white/10 text-blue-200 text-[11px] sm:text-xs font-semibold tracking-wider mb-8">
                   <Sparkles size={14} className="text-emerald-400" />
                   STUDENT & NEIGHBORHOOD KNOWLEDGE COMMONS
@@ -129,8 +190,8 @@ export default function LandingPage() {
 
                 <p className="text-sm sm:text-base lg:text-lg text-slate-300/80 mt-7 leading-8 max-w-xl mx-auto lg:mx-0">
                   Download verified study PDFs for free, rent physical
-                  spiral-bound notes from ₹3 to ₹10/day, and collaborate
-                  on academic or community help requests.
+                  spiral-bound notes from ₹3 to ₹10/day, and collaborate on
+                  academic or community help requests.
                 </p>
 
                 {/* Search */}
@@ -139,7 +200,6 @@ export default function LandingPage() {
                   className="mt-9 max-w-2xl mx-auto lg:mx-0"
                 >
                   <div className="flex flex-col sm:flex-row gap-2 p-2 bg-white rounded-2xl shadow-2xl shadow-black/20">
-
                     <div className="relative flex-1">
                       <Search className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
 
@@ -159,19 +219,20 @@ export default function LandingPage() {
                       Search Notes
                       <ArrowRight size={17} />
                     </button>
-
                   </div>
                 </form>
 
                 <div className="flex flex-wrap justify-center lg:justify-start items-center gap-3 mt-5 text-xs text-slate-400">
                   <span>Popular searches:</span>
-                  {['Data Structures', 'Calculus', 'PYQs'].map((item) => (
+                  {["Data Structures", "Calculus", "PYQs"].map((item) => (
                     <button
                       key={item}
                       type="button"
                       onClick={() => {
                         setSearchQuery(item);
-                        navigate(`/dashboard/browse?q=${encodeURIComponent(item)}`);
+                        navigate(
+                          `/dashboard/browse?q=${encodeURIComponent(item)}`,
+                        );
                       }}
                       className="text-blue-200 hover:text-white transition-colors"
                     >
@@ -183,14 +244,12 @@ export default function LandingPage() {
 
               {/* Decorative Resource Illustration */}
               <div className="relative hidden lg:flex justify-center items-center min-h-[450px]">
-
                 <div className="absolute w-[390px] h-[390px] rounded-full border border-white/10" />
                 <div className="absolute w-[310px] h-[310px] rounded-full border border-white/10" />
                 <div className="absolute w-[230px] h-[230px] rounded-full bg-indigo-500/10 blur-3xl" />
 
                 {/* Main Card */}
                 <div className="relative z-10 w-[290px] bg-white rounded-[28px] p-6 shadow-2xl shadow-black/30 rotate-[-5deg]">
-
                   <div className="flex items-center justify-between">
                     <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
                       <BookOpen size={25} />
@@ -206,8 +265,7 @@ export default function LandingPage() {
 
                   <h3 className="text-xl font-bold text-slate-900 mt-2">
                     Data Structures
-                    <br />
-                    & Algorithms
+                    <br />& Algorithms
                   </h3>
 
                   <p className="text-xs text-slate-400 mt-2">
@@ -263,51 +321,54 @@ export default function LandingPage() {
                     </div>
                   </div>
                 </div>
-
               </div>
-
             </div>
 
-            {/* Statistics */}
-            <div className="mt-20 lg:mt-24 pt-8 border-t border-white/10">
-              <div className="grid grid-cols-3 max-w-3xl mx-auto lg:mx-0">
-
-                <div className="text-center lg:text-left px-3">
-                  <p className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-                    {featured.length}
+            {/* ================= STATISTICS ================= */}
+            <div
+              ref={statsRef}
+              className="mt-20 lg:mt-24 pt-10 border-t border-white/10"
+            >
+              <div className="grid grid-cols-3 max-w-4xl mx-auto w-full">
+                {/* Active Resources */}
+                <div className="text-center px-3">
+                  <p className="text-4xl sm:text-5xl font-extrabold leading-none tracking-tight tabular-nums text-white">
+                    {animatedStats.resources}
                   </p>
-                  <p className="text-[10px] sm:text-xs text-slate-400 mt-2 font-medium">
+
+                  <p className="text-xs sm:text-sm text-slate-400 mt-4 font-medium">
                     Active Resources
                   </p>
                 </div>
 
+                {/* PDF Downloads */}
                 <div className="text-center px-3 border-x border-white/10">
-                  <p className="text-3xl sm:text-4xl font-extrabold text-blue-300 tracking-tight">
-                    {totalDownloads}
+                  <p className="text-4xl sm:text-5xl font-extrabold leading-none tracking-tight tabular-nums text-blue-300">
+                    {animatedStats.downloads}
                   </p>
-                  <p className="text-[10px] sm:text-xs text-slate-400 mt-2 font-medium">
+
+                  <p className="text-xs sm:text-sm text-slate-400 mt-4 font-medium">
                     PDF Downloads
                   </p>
                 </div>
 
-                <div className="text-center lg:text-left lg:pl-8 px-3">
-                  <p className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-                    {completedRentals}
+                {/* Completed Rentals */}
+                <div className="text-center px-3">
+                  <p className="text-4xl sm:text-5xl font-extrabold leading-none tracking-tight tabular-nums text-white">
+                    {animatedStats.rentals}
                   </p>
-                  <p className="text-[10px] sm:text-xs text-slate-400 mt-2 font-medium">
+
+                  <p className="text-xs sm:text-sm text-slate-400 mt-4 font-medium">
                     Completed Rentals
                   </p>
                 </div>
-
               </div>
             </div>
-
           </div>
         </section>
 
         {/* ================= HOW IT WORKS ================= */}
         <section className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 py-24">
-
           <div className="text-center max-w-2xl mx-auto mb-14">
             <span className="text-[11px] font-bold tracking-[0.2em] text-indigo-600 uppercase">
               SIMPLE. SMART. STUDENT-FIRST.
@@ -319,13 +380,12 @@ export default function LandingPage() {
             </h2>
 
             <p className="text-sm sm:text-base text-slate-500 mt-5 leading-relaxed">
-              Three integrated workflows built to make knowledge
-              sharing easier, more affordable, and accessible.
+              Three integrated workflows built to make knowledge sharing easier,
+              more affordable, and accessible.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-
             {workflows.map((item) => {
               const Icon = item.icon;
 
@@ -335,7 +395,9 @@ export default function LandingPage() {
                   className="group relative bg-white rounded-[26px] border border-slate-200/80 p-7 sm:p-8 hover:border-indigo-200 hover:shadow-xl hover:shadow-indigo-950/[0.05] hover:-translate-y-1 transition-all duration-300"
                 >
                   <div className="flex justify-between items-center">
-                    <div className={`w-14 h-14 rounded-2xl ${item.bg} ${item.color} flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
+                    <div
+                      className={`w-14 h-14 rounded-2xl ${item.bg} ${item.color} flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}
+                    >
                       <Icon size={26} strokeWidth={1.8} />
                     </div>
 
@@ -366,14 +428,12 @@ export default function LandingPage() {
                 </div>
               );
             })}
-
           </div>
         </section>
 
         {/* ================= CATEGORIES ================= */}
         <section className="bg-white border-y border-slate-100 py-20">
           <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12">
-
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-5 mb-9">
               <div>
                 <span className="text-[11px] font-bold tracking-[0.2em] text-indigo-600 uppercase">
@@ -406,20 +466,20 @@ export default function LandingPage() {
                   className="group inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-[#F8F9FD] border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 hover:shadow-lg hover:shadow-indigo-600/15 transition-all duration-200"
                 >
                   {cat}
-                  <MoveUpRight size={14} className="opacity-40 group-hover:opacity-100" />
+                  <MoveUpRight
+                    size={14}
+                    className="opacity-40 group-hover:opacity-100"
+                  />
                 </Link>
               ))}
             </div>
-
           </div>
         </section>
 
         {/* ================= FEATURED RESOURCES ================= */}
         {featured.length > 0 && (
           <section className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 py-24">
-
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-5 mb-9">
-
               <div>
                 <div className="flex items-center gap-2 mb-3">
                   <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
@@ -446,7 +506,6 @@ export default function LandingPage() {
                 View All Resources
                 <ArrowRight size={17} />
               </Link>
-
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -454,19 +513,16 @@ export default function LandingPage() {
                 <ResourceCard key={res.id} resource={res} />
               ))}
             </div>
-
           </section>
         )}
 
         {/* ================= TRUST SECTION ================= */}
         <section className="px-5 sm:px-8 lg:px-12 pb-24">
           <div className="max-w-7xl mx-auto relative overflow-hidden rounded-[30px] bg-gradient-to-br from-[#111C46] to-[#293F83] p-9 sm:p-14">
-
             <div className="absolute -right-20 -top-32 w-96 h-96 border border-white/10 rounded-full" />
             <div className="absolute -right-5 -top-16 w-64 h-64 border border-white/10 rounded-full" />
 
             <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-10">
-
               <div className="max-w-2xl">
                 <div className="inline-flex items-center gap-2 text-blue-200 text-xs font-bold tracking-widest">
                   <ShieldCheck size={17} />
@@ -480,9 +536,9 @@ export default function LandingPage() {
                 </h2>
 
                 <p className="text-sm sm:text-base text-blue-100/70 mt-5 leading-relaxed max-w-xl">
-                  HelpHub brings students and communities together
-                  through affordable resources, verified reviews,
-                  and meaningful collaboration.
+                  HelpHub brings students and communities together through
+                  affordable resources, verified reviews, and meaningful
+                  collaboration.
                 </p>
               </div>
 
@@ -510,11 +566,9 @@ export default function LandingPage() {
                   <ArrowUpRight size={17} />
                 </Link>
               </div>
-
             </div>
           </div>
         </section>
-
       </main>
 
       <Footer />

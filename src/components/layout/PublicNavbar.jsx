@@ -66,7 +66,7 @@ export default function PublicNavbar() {
                 end={item.end}
                 className={({ isActive }) => `
                   relative px-4 py-2.5 rounded-xl
-                  text-[13px] font-semibold
+                  text-[16px] font-semibold
                   transition-all duration-200
                   ${
                     isActive
