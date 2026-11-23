@@ -4,7 +4,11 @@
 
 HelpHub is a student-focused resource-sharing and peer-support web app. Members can publish study resources, access shared PDFs, arrange offline rentals of physical notes, and ask classmates for help. The application is a single-page React app backed by Firebase Authentication and Cloud Firestore, with Supabase Storage for PDF and profile-photo files.
 
-**Live app:** [https://help-hub-topaz.vercel.app](https://help-hub-topaz.vercel.app)
+**Live app (Vercel):** [https://help-hub-topaz.vercel.app](https://help-hub-topaz.vercel.app)
+
+**GitHub repository:** [pratigyasachdeva/HelpHub](https://github.com/pratigyasachdeva/HelpHub)
+
+**Additional frontend deployment:** [https://helphub-platform.web.app](https://helphub-platform.web.app) (Firebase Hosting)
 
 ## Table of contents
 
@@ -22,6 +26,7 @@ HelpHub is a student-focused resource-sharing and peer-support web app. Members 
 - [Known scope and limitations](#known-scope-and-limitations)
 - [Troubleshooting](#troubleshooting)
 - [Contributing](#contributing)
+- [License](#license)
 
 ## What HelpHub does
 
@@ -64,15 +69,15 @@ HelpHub is a student-focused resource-sharing and peer-support web app. Members 
 
 ## Technology
 
-| Area | Technology |
-| --- | --- |
-| UI | React 18, Vite, Tailwind CSS |
-| Routing | React Router |
-| Icons | Lucide React |
-| Authentication | Firebase Authentication (email/password) |
-| App data and live updates | Cloud Firestore |
-| PDF and avatar files | Supabase Storage |
-| Hosting | Vercel |
+| Area                      | Technology                                                          |
+| ------------------------- | ------------------------------------------------------------------- |
+| UI                        | React 18, Vite, Tailwind CSS                                        |
+| Routing                   | React Router                                                        |
+| Icons                     | Lucide React                                                        |
+| Authentication            | Firebase Authentication (email/password)                            |
+| App data and live updates | Cloud Firestore                                                     |
+| PDF and avatar files      | Supabase Storage                                                    |
+| Frontend hosting          | Vercel (primary live app); Firebase Hosting (additional deployment) |
 
 ## Application architecture
 
@@ -101,6 +106,7 @@ src/
 ├── firebase/         Firebase app/Auth/Firestore initialization
 ├── supabase/         Supabase client initialization
 └── utils/            Shared date and pricing helpers
+
 firestore.rules       Cloud Firestore security rules
 firestore.indexes.json Required compound Firestore indexes
 supabase/             Supabase Storage policy SQL
@@ -118,13 +124,11 @@ supabase/             Supabase Storage policy SQL
 ### Install and configure
 
 ```bash
-git clone https://github.com/OWNER/REPOSITORY.git
-cd helphub-platform
+git clone https://github.com/pratigyasachdeva/HelpHub.git
+cd HelpHub
 npm install
 cp .env.example .env
 ```
-
-Replace `OWNER/REPOSITORY` with the GitHub account and repository name.
 
 Edit `.env` with the Firebase Web App values and Supabase project URL and publishable key. See [Environment variables](#environment-variables). Never copy another developer's project-specific keys into your own environment.
 
@@ -169,35 +173,37 @@ PDF uploads are limited by the UI to PDF files up to 25 MB. Objects are stored u
 
 Copy `.env.example` to `.env` and set every value for the Firebase and Supabase projects you configured:
 
-| Variable | Purpose | Source |
-| --- | --- | --- |
-| `VITE_FIREBASE_API_KEY` | Firebase Web App project/app identifier | Firebase Console → Project settings → Your apps |
-| `VITE_FIREBASE_AUTH_DOMAIN` | Firebase Authentication domain | Firebase Web App configuration |
-| `VITE_FIREBASE_PROJECT_ID` | Firebase project ID | Firebase Web App configuration |
-| `VITE_FIREBASE_STORAGE_BUCKET` | Firebase Storage bucket config value | Firebase Web App configuration |
-| `VITE_FIREBASE_MESSAGING_SENDER_ID` | Firebase messaging sender config | Firebase Web App configuration |
-| `VITE_FIREBASE_APP_ID` | Firebase Web App ID | Firebase Web App configuration |
-| `VITE_SUPABASE_URL` | Supabase project URL | Supabase Dashboard → Project settings → API |
-| `VITE_SUPABASE_PUBLISHABLE_KEY` | Browser-safe Supabase key | Supabase Dashboard → Project settings → API |
+| Variable                            | Purpose                                 | Source                                          |
+| ----------------------------------- | --------------------------------------- | ----------------------------------------------- |
+| `VITE_FIREBASE_API_KEY`             | Firebase Web App project/app identifier | Firebase Console → Project settings → Your apps |
+| `VITE_FIREBASE_AUTH_DOMAIN`         | Firebase Authentication domain          | Firebase Web App configuration                  |
+| `VITE_FIREBASE_PROJECT_ID`          | Firebase project ID                     | Firebase Web App configuration                  |
+| `VITE_FIREBASE_STORAGE_BUCKET`      | Firebase Storage bucket config value    | Firebase Web App configuration                  |
+| `VITE_FIREBASE_MESSAGING_SENDER_ID` | Firebase messaging sender config        | Firebase Web App configuration                  |
+| `VITE_FIREBASE_APP_ID`              | Firebase Web App ID                     | Firebase Web App configuration                  |
+| `VITE_SUPABASE_URL`                 | Supabase project URL                    | Supabase Dashboard → Project settings → API     |
+| `VITE_SUPABASE_PUBLISHABLE_KEY`     | Browser-safe Supabase key               | Supabase Dashboard → Project settings → API     |
 
-All `VITE_` variables are bundled into browser code at build time. Firebase web API keys and Supabase publishable keys are intended for client apps, but they do **not** replace security rules or storage policies. Never put a Supabase `secret`/`service_role` key, private credentials, or Firebase Admin service-account JSON in a `VITE_` variable. For production builds, configure the same variables in the hosting/build environment; Firebase Hosting does not read your local `.env` file after the build has been created.
+All `VITE_` variables are bundled into browser code at build time. Firebase web API keys and Supabase publishable keys are intended for client apps, but they do **not** replace security rules or storage policies. Never put a Supabase `secret`/`service_role` key, private credentials, or Firebase Admin service-account JSON in a `VITE_` variable.
+
+For production builds, configure the same variables in the hosting/build environment. Vercel needs these variables in its Project Settings before deployment. Firebase Hosting does not read your local `.env` file after the build has been created.
 
 ## Data model
 
 The app stores operational records in Cloud Firestore. Important collections include:
 
-| Collection | Purpose / key fields |
-| --- | --- |
-| `users` | Public profile, role, account status, contribution counts; document ID is the Firebase UID |
-| `resources` | Study listing metadata, owner, file path, soft/hard-copy options, availability, counters, and ratings |
-| `downloads` | Per-user/resource download record and download counts |
-| `rentalRequests` | Renter, owner, resource, dates, price, message, and lifecycle status |
-| `rentalHistory` | Completed rental summary created when a copy is returned |
-| `notifications` | In-app notification addressed to a Firebase UID, read state, and destination link |
-| `helpRequests` | Community question/request, author, urgency, and accepted offer fields |
-| `helpOffers` | A member's offer to help with a request and its status |
-| `reviews` | One review per transaction/reviewer, with rating and helpfulness |
-| `reports` | User-submitted reports and their moderation status |
+| Collection       | Purpose / key fields                                                                                  |
+| ---------------- | ----------------------------------------------------------------------------------------------------- |
+| `users`          | Public profile, role, account status, contribution counts; document ID is the Firebase UID            |
+| `resources`      | Study listing metadata, owner, file path, soft/hard-copy options, availability, counters, and ratings |
+| `downloads`      | Per-user/resource download record and download counts                                                 |
+| `rentalRequests` | Renter, owner, resource, dates, price, message, and lifecycle status                                  |
+| `rentalHistory`  | Completed rental summary created when a copy is returned                                              |
+| `notifications`  | In-app notification addressed to a Firebase UID, read state, and destination link                     |
+| `helpRequests`   | Community question/request, author, urgency, and accepted offer fields                                |
+| `helpOffers`     | A member's offer to help with a request and its status                                                |
+| `reviews`        | One review per transaction/reviewer, with rating and helpfulness                                      |
+| `reports`        | User-submitted reports and their moderation status                                                    |
 
 Some list views use live Firestore listeners. `firestore.indexes.json` contains the compound indexes needed for filtered/sorted listings, including incoming and outgoing rental requests. Newly deployed indexes may take time to finish building before those queries work.
 
@@ -210,7 +216,7 @@ Some list views use live Firestore listeners. `firestore.indexes.json` contains 
 - Firebase web API keys are not authorization secrets. Restrict their allowed APIs in Google Cloud where appropriate, and use Firebase Security Rules (and App Check where configured) to protect data/services.
 - Use test accounts and non-sensitive sample files while developing. Review all policies before opening the app to the public.
 
-## Run and Deploy
+## Run and deploy
 
 ### Local Development and Production Build
 
@@ -237,11 +243,31 @@ npx firebase-tools login
 npx firebase-tools deploy --only firestore:rules,firestore:indexes --project helphub-platform
 ```
 
-Wait until the required Firestore indexes show **Enabled** in the Firebase Console.
+For the original project, the Firebase project ID is `helphub-platform`. In Firebase Console → Firestore → Indexes, wait until the required indexes show **Enabled**. A **Building** status means the index is not ready yet.
+
+### Deploy the web app to Firebase Hosting (additional deployment)
+
+Make sure your production environment variables are available before building. Then run:
+
+```bash
+npm run build
+npx firebase-tools deploy --only hosting --project helphub-platform
+```
+
+To deploy all resources declared in `firebase.json` (Hosting, Firestore rules, and indexes), build first and run:
+
+```bash
+npm run build
+npx firebase-tools deploy --project helphub-platform
+```
+
+Alternatively, `npm run deploy:all` runs the build and deploys to the Firebase project already selected in the CLI. The first deploy may require selecting or creating a Firebase Hosting site. Check the Firebase CLI output for the final hosted URL.
 
 ## Deploy to Vercel
 
-HelpHub is hosted on **Vercel**, which provides production deployment and automatic deployments through GitHub integration. Firebase continues to handle Authentication and Cloud Firestore, while Supabase is used for PDF and profile-photo storage.
+HelpHub is hosted primarily on **Vercel**, which provides production deployment and automatic deployments through GitHub integration. Firebase continues to handle Authentication and Cloud Firestore, while Supabase is used for PDF and profile-photo storage.
+
+The current primary live frontend is [https://help-hub-topaz.vercel.app](https://help-hub-topaz.vercel.app). The GitHub repository is [pratigyasachdeva/HelpHub](https://github.com/pratigyasachdeva/HelpHub).
 
 ### Deployment Steps
 
@@ -249,16 +275,18 @@ HelpHub is hosted on **Vercel**, which provides production deployment and automa
 2. Log in to [Vercel](https://vercel.com/) using your GitHub account.
 3. Import the `pratigyasachdeva/HelpHub` repository.
 4. Configure the project with the following settings:
-
    - **Framework Preset:** Vite
    - **Root Directory:** `./`
    - **Build Command:** `npm run build`
    - **Output Directory:** `dist`
    - **Install Command:** `npm install`
 
-5. Add all required environment variables from `.env` to Vercel Project Settings under Environment Variables. Configure them for Production and Preview environments.
+5. Add all required `VITE_` environment variables from `.env` to Vercel Project Settings. Configure them for the Production environment (and Preview if required).
 6. Click **Deploy** to build and publish the application.
-7. Once deployment is successful, Vercel provides a live production URL.
+
+The required `VITE_` variables are embedded in the browser bundle at build time. If you change them, redeploy the application.
+
+The `vercel.json` file rewrites app routes to `index.html`, allowing direct visits to dashboard routes.
 
 ### Automatic Deployment
 
@@ -271,7 +299,7 @@ The GitHub repository is connected to Vercel. Whenever new changes are pushed to
 3. Confirm that Supabase Storage buckets and access policies are configured correctly.
 4. Test user registration, login, password reset, PDF uploads, downloads, and profile-photo functionality.
 
-**Note:** Vercel hosts only the frontend application. Firebase Authentication, Firestore security rules and indexes, and Supabase Storage continue to operate independently. The existing Firebase Hosting deployment can remain active separately.
+**Note:** Vercel hosts the primary frontend application. Firebase Authentication, Firestore security rules and indexes, and Supabase Storage operate independently. Firebase Hosting remains available as an additional frontend deployment at [https://helphub-platform.web.app](https://helphub-platform.web.app).
 
 ## Known scope and limitations
 
@@ -289,7 +317,7 @@ Run the Firebase CLI via `npx` from the project directory:
 
 ```bash
 npx firebase-tools login
-npx firebase-tools deploy --only firestore:rules,firestore:indexes --project <firebase-project-id>
+npx firebase-tools deploy --only firestore:rules,firestore:indexes --project helphub-platform
 ```
 
 ### Rental list is empty but a notification says a request arrived
